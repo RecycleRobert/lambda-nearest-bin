@@ -1,4 +1,4 @@
-# nearest_bin
+# lambda_nearest_bin
 
 (index.js)
 The following lambda computes the nearest 5 bins based on user longitude, latitude and source_var
