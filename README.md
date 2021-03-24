@@ -4,6 +4,9 @@
 The following lambda computes the nearest 5 bins based on user longitude, latitude and source_var
 - source_var is based on SOURCE column ['cashfortrash','ewaste','lighting','recyclingbins']
 
+(nearest_bin.sql)
+clean sql file to find nearest 5 bins
+
 (bot.js)
 The following is a component that allows user to return their latitude/longtitude
 - it requires the user to sent their location to the telegrambot
