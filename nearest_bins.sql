@@ -12,7 +12,7 @@ select rp.addressbuildingname,
        rp.hyperlink,
        rp.longitude,
        rp.latitude,
-       st_distance(@pt1, point(rp.longitude, rp.latitude))/1000 as euclidean_distance_km
+       st_distance_sphere(@pt1, point(rp.longitude, rp.latitude))/1000 as euclidean_distance_km
 from recyclerobert.recycling_points rp
 where substring_index(rp.source,'.',1) = @source
-order by st_distance(@pt1, point(rp.longitude, rp.latitude)) limit 5;
+order by st_distance_sphere(@pt1, point(rp.longitude, rp.latitude)) limit 5;
