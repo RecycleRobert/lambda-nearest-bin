@@ -1,152 +1,94 @@
-// WENLIN
-const AWS = require('aws-sdk');
+var mysql = require('mysql');
 
-AWS.config.update({
-    accessKeyId: process.env.AWSACCESSKEYID, 
-    secretAccessKey: process.env.AWSSECRETACCESSKEY,
-    region: process.env.AWSREGION
-});
-
-const binTypes = ["Cash For Trash", "E-Waste", "Lighting", "Recycling Bins"];
-const binTypeButtons = binTypes.map((binType) => {
-  return [
-    {
-      text: binType,
-      switch_inline_query_current_chat: `type ${binType}`
-    }
-  ]
-});
-
-module.exports = (bot) => {
-  bot.inlineQuery(/info\s.+/, async ctx => {
-    let input = ctx.inlineQuery.query.split(' ');
-    input.shift();
-    let query = input.join(' ');
-    
-    let results = [
-      {
-        type: 'article',
-        id: '1',
-        title: 'Info',
-        input_message_content: {
-          message_text: query
-        },
-        description: `Get information on this recycling point`
-      }
-    ];
-    
-    ctx.answerInlineQuery(results);
-  })
+exports.handler = async function(event, context) {
+  const connection = mysql.createConnection({
+    host: process.env.MYSQL_HOST,
+    user: process.env.MYSQL_USER,
+    password: process.env.MYSQL_PASSWORD,
+    database: process.env.MYSQL_DATABASE
+  });
   
-  bot.inlineQuery(/^bin$/, ctx => {
-    
-    // GET BIN TYPE
-    
-    //results array containing 1 inlinequeryresult article for ctx.answerInlineQuery method
-    let results = [
-      {
-        type: 'article',
-        id: '1',
-        title: 'Bin Type',
-        input_message_content: {
-          message_text: `Which bin type?`
-        },
-        description: 'Select the type of bin you are looking for',
-        reply_markup: {
-          inline_keyboard: binTypeButtons
-        }
-      }
-    ];
-    
-    ctx.answerInlineQuery(results)
-  })
-  
-  bot.inlineQuery(/type\s.+/, async ctx => {
-    let input = ctx.inlineQuery.query.split(' '); //split string by spaces into array eg. ['type', 'Ink', 'Cartridges']
-    console.log(ctx.inlineQuery.query.reply_markup);
-    input.shift(); //remove first element in array eg. ['Ink', 'Cartridges']
-    let query = input.join(' '); //join elements in array into string separated by spaces eg. "Ink Cartridges"
+  connection.connect();
 
-    // GET NEAREST BINS
-    // User's location and Query: 
-    let client = new AWS.Lambda({region: 'ap-southeast-1'});
-
-    let payload = {
-      "usr_longtitude": ctx.inlineQuery.location.longitude,
-      "usr_latitude": ctx.inlineQuery.location.latitude,
-      "source_var": query 
-    };
-    payload = JSON.stringify(payload);
-
-    let params = {
-      FunctionName: 'arn:aws:lambda:ap-southeast-1:367586388111:function:RecycleRobert-Nearest-Bin',
-      InvocationType: "RequestResponse", 
-      Payload: payload
-    };
-   
-    try {
-      const data = await client.invoke(params).promise();
-      const queryResult = JSON.parse(data.Payload);
-
-      let latitudes = queryResult.body.latitude;
-      let longitudes = queryResult.body.longitude;
-      let descs = queryResult.body.desc;
-      let addressunitnumbers = queryResult.body.addressunitnumber;
-      let addressstreetnames = queryResult.body.addressstreetname;
-      let addresspostalcodes = queryResult.body.addresspostalcode;
-      let addressbuildingnames = queryResult.body.addressbuildingname;
-      let addressblockhousenumbers = queryResult.body.addressblockhousenumber;
-      
-      let results = latitudes.map((latitude, index) => {
-        
-        let address = `Blk ${addressblockhousenumbers[index]}` + " ";
-        let addressstreetname = addressstreetnames[index];
-        if (addressstreetname) {
-          address += `${addressstreetname}` + " ";
-        }
-        let addressunitnumber = addressunitnumbers[index];
-        if (addressunitnumber) {
-          address += `#${addressunitnumber}` + " ";
-        }
-        let addresspostalcode = addresspostalcodes[index];
-        if (addresspostalcode) {
-          address += `S(${addresspostalcode})` + " ";
-        }
-        let desc = descs[index]
-        if (desc) {
-          return {
-            type: 'venue',
-            id: String(index),
-            latitude: latitude,
-            longitude : longitudes[index],
-            title: addressbuildingnames[index],
-            address: address,
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: `Get Information`, switch_inline_query_current_chat: `info ${desc}` }
-                ]
-              ]
-            }
-          }
+  var getBins = function(query) {
+      return new Promise(function(resolve, reject) {
+      var sql = `
+      select round(rp.LATITUDE,7) as LATITUDE, round(rp.LONGITUDE,7) as LONGITUDE, rp.DESCRIPTION,
+             rp.ADDRESSUNITNUMBER, rp.ADDRESSSTREETNAME, rp.ADDRESSPOSTALCODE, rp.ADDRESSBUILDINGNAME, rp.ADDRESSBLOCKHOUSENUMBER,
+             round(st_distance_sphere(point("${event.usr_longtitude}", "${event.usr_latitude}"),
+                                point(rp.longitude, rp.latitude))/1000,2) as euclidean_distance_km 
+      from recyclerobert.recycling_points rp
+      where substring_index(rp.source,'.',1) = 
+            case when "${event.source_var}" = "Cash For Trash" then "cashfortrash"
+                when "${event.source_var}" = "E-Waste" then 'ewaste'
+                when "${event.source_var}" = "Lighting" then 'lighting'
+                when "${event.source_var}" = "Recycling Bins" then 'recyclingbins' end
+      and rp.ADDRESSBUILDINGNAME is not null
+      order by st_distance_sphere(point("${event.usr_longtitude}", "${event.usr_latitude}"), 
+                          point(rp.longitude, rp.latitude)) 
+      limit 5;`;
+      connection.query(sql, [query], function(err, result) {
+        if (!err) {
+          resolve(result);
         } else {
-          return {
-            type: 'venue',
-            id: String(index),
-            latitude: latitude,
-            longitude : longitudes[index],
-            title: addressbuildingnames[index],
-            address: address
-          }
+          resolve({
+            status: "error",
+            message: "Error Getting Data",
+            debug: err
+          });
         }
-      })
-      
-      ctx.answerInlineQuery(results);
-    } catch (err) {
-      console.log('Fail Case');
-      console.log(err, err.stack);
-      throw err;
-    }
+      });
+    });
+  };
+
+  var endConnection = function () {
+    return new Promise((resolve, reject) => {
+        connection.end(error => error ? reject(error) : resolve());
+    });
+  }
+
+  let results;
+  let returnObj;
+  try {
+    results = await getBins(event.query); 
+    await endConnection();
+    let latitude = [];
+    let longitude = [];
+    let desc = [];
+    let addressunitnumber = [];
+    let addressstreetname = [];
+    let addresspostalcode = [];
+    let addressbuildingname = [];
+    let addressblockhousenumber = [];
     
-  })
-}
+    for (let i = 0; i < results.length; i++) {
+      latitude.push(results[i].LATITUDE);
+      longitude.push(results[i].LONGITUDE);
+      desc.push(results[i].DESCRIPTION);
+      addressunitnumber.push(results[i].ADDRESSUNITNUMBER);
+      addressstreetname.push(results[i].ADDRESSSTREETNAME);
+      addresspostalcode.push(results[i].ADDRESSPOSTALCODE);
+      addressbuildingname.push(results[i].ADDRESSBUILDINGNAME);
+      addressblockhousenumber.push(results[i].ADDRESSBLOCKHOUSENUMBER);
+    }
+    returnObj = {
+      'latitude': latitude,
+      'longitude': longitude,
+      'desc' : desc,
+      'addressunitnumber': addressunitnumber,
+      'addressstreetname': addressstreetname,
+      'addresspostalcode': addresspostalcode,
+      'addressbuildingname': addressbuildingname,
+      'addressblockhousenumber': addressblockhousenumber
+    }
+    console.log(returnObj);
+   } catch (e) {
+     console.log(e);
+  }
+
+  const response = {
+    statusCode: 200,
+    body: returnObj
+  };
+  return response;
+};
