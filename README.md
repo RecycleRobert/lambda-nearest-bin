@@ -1,18 +1,20 @@
-# lambda_nearest_bin
+# RecycleRobert-Nearest-Bin
 
-(index.js)
-The following lambda computes the nearest 5 bins based on user longitude, latitude and source_var
-- source_var is based on SOURCE column ['cashfortrash','ewaste','lighting','recyclingbins']
+Index.js is a node.js lambda function that queries from the RecycleRobert-RDS-DB to return the nearest 5 recycling locations. 
 
-(nearest_bin.sql)
-clean sql file to find nearest 5 bins
+## Test Case to Test Lambda Function
 
-(bot.js)
-The following is a component that allows user to return their latitude/longtitude
-- it requires the user to sent their location to the telegrambot
-- requires `npm i node-telegram-bot-api`
+Insert the following test case in the AWS Lambda Function Console
 
-Some suggestions to connect to database
-- use this nodejs library to connect (node.js https://www.npmjs.com/package/telegraf-session-mysql)
-- user another lambda to invoke telgram hook (https://stackoverflow.com/questions/61241086/aws-lambda-telegram-bot-with-mysql-loop-message-same-message)
-- use a NoSQL database like dynamoDB (node.js https://www.npmjs.com/package/telegraf-session-dynamodb)
+```bash
+{
+  "usr_longtitude": User Longitude,
+  "usr_latitude": User Latitude,
+  "source_var": "Cash For Trash"
+}
+```
+
+# RecycleRobert-Lambda-Function-Core (Bin.js)
+
+Bin.js is a node.js telegraf library that sends the user provided inputs (long/lat and type of recycling bin) to the RecycleRobert-Nearest-Bin lambda function. It then retrieves the results from the lambda function and returns using the Telegraf location method. 
+
