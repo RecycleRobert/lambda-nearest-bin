@@ -8,7 +8,7 @@ Sets up lambda function that returns a list of items and whether or not they can
     1. From the AWS Lambda console, select **Create function**.
     2. Select **Author from scratch**
     3. Basic information  
-        - Function name: `RecycleRobert-Item-Text`
+        - Function name: `RecycleRobert-Nearest-Bin`
         - Runtime: `Node.js 14.x`
     4. Advanced settings
         - Network - VPC: `RecycleRobertVPC-01`
