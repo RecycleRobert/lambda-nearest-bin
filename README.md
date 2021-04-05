@@ -1,7 +1,3 @@
-# RecycleRobert-Nearest-Bin
-
-Index.js is a node.js lambda function that queries from the RecycleRobert-RDS-DB to return the nearest 5 recycling locations. 
-
 # lambda-nearest-bin
 
 Sets up lambda function that returns a list of items and whether or not they can be recycled, based on a given materal.
