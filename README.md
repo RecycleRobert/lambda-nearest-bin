@@ -1,9 +1,9 @@
 # lambda-nearest-bin
 
-Sets up lambda function that returns a list of items and whether or not they can be recycled, based on a given materal.
+Sets up lambda function that returns a list of the 5 nearest recycling points, given the type of recycling point and a set of coordinates.
 
-1. **Ensure RDS database is set up.**
-2. **Ensure lambda-core Lambda function is set up.**
+1. **Ensure lambda-core Lambda function is set up.**
+2. **Ensure RDS database is set up.**
 3. **Create Lambda function**  
     1. From the AWS Lambda console, select **Create function**.
     2. Select **Author from scratch**
@@ -11,16 +11,16 @@ Sets up lambda function that returns a list of items and whether or not they can
         - Function name: `RecycleRobert-Nearest-Bin`
         - Runtime: `Node.js 14.x`
     4. Advanced settings
-        - Network - VPC: `RecycleRobertVPC-01`
-        - Subnets: `RecycleRobertSubnet-01`; `RecycleRobertSubnet-02`
-        - Security groups: `RecycleRobertSG-01`
+        - Network - VPC: `RecycleRobert-VPC`
+        - Subnets: `RecycleRobert-DB-Subnet-1`; `RecycleRobert-DB-Subnet-2`; `RecycleRobert-DB-Subnet-3`
+        - Security groups: `RecycleRobertDBSG-1`
 4. **Add environment variables**  
     1. Inside the function created, go to **Configuration** then **Environment variables**.  
     2. Create the following key value pairs:  
         `DATABASE`: `recyclerobert`  
-        `HOST`: `database-1.cmieupqnbab4.ap-southeast-1.rds.amazonaws.com`  
-        `PASSWORD`: `password`  
-        `USER`: `admin`  
+        `HOST`: `<Endpoint of RDS created in db-setup>`  
+        `PASSWORD`: `<password>`  
+        `USER`: `admin`   
 5. **Add layer**  
     1. In **Function overview**, click on **Layers**.
     2. Click **Add a layer**.
@@ -46,7 +46,7 @@ Sets up lambda function that returns a list of items and whether or not they can
       "source_var": "Cash For Trash"
     }
     ```
-    4. Specify and **Event name**.
+    4. Specify any **Event name**.
     5. Click **Create**.
  8. **Test function**
     1. Click **Test** or **Invoke** depending on which page of the dashboard you are on.
