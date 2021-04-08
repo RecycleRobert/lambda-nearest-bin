@@ -41,8 +41,8 @@ Sets up lambda function that returns a list of the 5 nearest recycling points, g
     Insert the following test case in the AWS Lambda Function Console
     ```
     {
-      "usr_longtitude": User Longitude,
-      "usr_latitude": User Latitude,
+      "usr_longtitude": 103.7764,
+      "usr_latitude": 1.2966,
       "source_var": "Cash For Trash"
     }
     ```
